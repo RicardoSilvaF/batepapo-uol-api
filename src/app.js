@@ -97,13 +97,13 @@ app.post("/messages", async (req, res) => {
     }
 
     // VALIDACAO DO USUARIO E DA MENSAGEM
-    if(!user){
+    if (!user) {
         console.log("sem usuario");
         res.sendStatus(422);
         return;
     }
-    const userCheck = await db.collection("participants").findOne({ name: user});
-    if(userCheck === null){
+    const userCheck = await db.collection("participants").findOne({ name: user });
+    if (userCheck === null) {
         console.log("usuario inexistente");
         res.sendStatus(422);
         return;
@@ -129,26 +129,51 @@ app.post("/messages", async (req, res) => {
     res.sendStatus(201);
 })
 
-app.get("/messages", async (req,res) => {
+app.get("/messages", async (req, res) => {
     let { user } = req.headers;
     let { limit } = req.query;
 
     // checa se o limit é 0, negativo ou não numero; e permite ele nao existir limite ou ele ser vazio
-    if((isNaN(limit) || limit <= 0) && limit != undefined && limit != ""){
+    if ((isNaN(limit) || limit <= 0) && limit != undefined && limit != "") {
         res.sendStatus(422);
         return;
     }
-    let messageList = await db.collection("messages").find( {$or: [ { from: user }, { to: user } ]} ).toArray()
-    if(limit){
+    let messageList = await db.collection("messages").find({ $or: [{ type: "message" }, { to: "Todos" }, { from: user }, { to: user }] }).toArray()
+    if (limit) {
         res.send(messageList.slice(-limit));
         return;
     }
-    else{
+    else {
         res.send(messageList);
         return;
     }
 })
 // MESSAGES
+
+// STATUS
+app.post("/status", async (req, res) => {
+    const { user } = req.headers;
+    try {
+        if (!user) {
+            res.sendStatus(404);
+            return;
+        }
+        const statusCheckUser = await db.collection("participants").findOne({ name: user });
+        if (statusCheckUser === null) {
+            console.log('user n existe')
+            res.sendStatus(404);
+            return;
+        }
+        else{
+            await db.collection("participants").updateOne({name: user}, {$set:{lastStatus: Date.now()}})
+        }
+        res.sendStatus(200);
+    }
+    catch (error) {
+        res.status(500).send(error.message);
+    }
+})
+// STATUS
 
 const port = 5000;
 app.listen(port, () => console.log('server ligado'));
