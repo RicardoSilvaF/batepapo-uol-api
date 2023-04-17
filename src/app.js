@@ -118,11 +118,35 @@ app.post("/messages", async (req, res) => {
 
     message.from = user;
     message.time = dayjs(Date.now()).format("HH:mm:ss");
-    console.log(message.from);
-    console.log(message.time);
-    await db.collection("messages").insertOne({message});
+    await db.collection("messages").insertOne({
+        from: message.from,
+        to: message.to,
+        text: message.text,
+        type: message.type,
+        time: message.time
+    });
 
     res.sendStatus(201);
+})
+
+app.get("/messages", async (req,res) => {
+    let { user } = req.headers;
+    let { limit } = req.query;
+
+    // checa se o limit é 0, negativo ou não numero; e permite ele nao existir limite ou ele ser vazio
+    if((isNaN(limit) || limit <= 0) && limit != undefined && limit != ""){
+        res.sendStatus(422);
+        return;
+    }
+    let messageList = await db.collection("messages").find( {$or: [ { from: user }, { to: user } ]} ).toArray()
+    if(limit){
+        res.send(messageList.slice(-limit));
+        return;
+    }
+    else{
+        res.send(messageList);
+        return;
+    }
 })
 // MESSAGES
 
