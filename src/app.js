@@ -196,10 +196,11 @@ setInterval(async () => {
                 }
             })
             await db.collection("messages").insertMany(exitMessages);
+            
         }
     }
     catch (error) {
-        res.status(500).send(error.message);
+        return error;
     }
 }, 15000);
 // INACTIVE REMOVER
