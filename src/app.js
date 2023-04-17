@@ -54,7 +54,7 @@ app.post("/participants", async (req,res) => {
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
-            time: dayjs(date).format("HH:MM:SS")
+            time: dayjs(date).format("HH:mm:ss")
         });
         res.status(201).send("cadastrado com sucesso")
         return;
@@ -63,6 +63,18 @@ app.post("/participants", async (req,res) => {
         console.log(error)
         res.status(500).send("Houve um erro")
         return;
+    }
+});
+
+app.get("/participants", async (req,res) => {
+    let listaParticipants = [];
+    try{
+        listaParticipants = await db.collection("participants").find().toArray();
+        res.send(listaParticipants);
+    }
+    catch{
+        console.log("lista de participantes vazia");
+        res.send(listaParticipants);
     }
 });
 
