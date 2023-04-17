@@ -96,7 +96,7 @@ app.post("/messages", async (req, res) => {
         type
     }
 
-    // VALIDACAO DO USUARIO E DA MENSAGEM
+    // USER AND MESSAGE VALIDATION
     if (!user) {
         console.log("sem usuario");
         res.sendStatus(422);
@@ -114,7 +114,7 @@ app.post("/messages", async (req, res) => {
         res.sendStatus(422);
         return;
     }
-    // VALIDACAO DO USUARIO E DA MENSAGEM
+    // USER AND MESSAGE VALIDATION
 
     message.from = user;
     message.time = dayjs(Date.now()).format("HH:mm:ss");
@@ -133,7 +133,7 @@ app.get("/messages", async (req, res) => {
     let { user } = req.headers;
     let { limit } = req.query;
 
-    // checa se o limit é 0, negativo ou não numero; e permite ele nao existir limite ou ele ser vazio
+    // check: limit=0,limit<0,limit not a number; and permits limit=undefined or limit= empty string
     if ((isNaN(limit) || limit <= 0) && limit != undefined && limit != "") {
         res.sendStatus(422);
         return;
@@ -164,8 +164,8 @@ app.post("/status", async (req, res) => {
             res.sendStatus(404);
             return;
         }
-        else{
-            await db.collection("participants").updateOne({name: user}, {$set:{lastStatus: Date.now()}})
+        else {
+            await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
         }
         res.sendStatus(200);
     }
@@ -174,6 +174,35 @@ app.post("/status", async (req, res) => {
     }
 })
 // STATUS
+
+// INACTIVE REMOVER
+setInterval(async () => {
+    let date = Date.now();
+    let afklimit = 10000; // 10 seconds
+    try {
+        let afks = await db.collection("participants").find({ lastStatus: { $lt: date - afklimit } }).toArray();
+        await db.collection("participants").deleteMany({lastStatus: {$lt: date - afklimit}});
+        if (afks.lenght == 0) {
+            return;
+        }
+        else {
+            const exitMessages = afks.map((user) => {
+                return {
+                    from: user.name,
+                    to: 'Todos',
+                    text: 'sai da sala...',
+                    type: 'status',
+                    time: dayjs().format('HH:mm:ss')
+                }
+            })
+            await db.collection("messages").insertMany(exitMessages);
+        }
+    }
+    catch (error) {
+        res.status(500).send(error.message);
+    }
+}, 15000);
+// INACTIVE REMOVER
 
 const port = 5000;
 app.listen(port, () => console.log('server ligado'));
